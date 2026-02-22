@@ -289,6 +289,33 @@ final class MenuBarViewModel: ObservableObject {
     }
 }
 
+// MARK: - Visual Effect Background
+
+private struct VisualEffectView: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = .popover
+        v.blendingMode = .behindWindow
+        v.state = .active
+        return v
+    }
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
+private struct WindowAccessor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                window.backgroundColor = .clear
+                window.isOpaque = false
+            }
+        }
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
 // MARK: - Popover View
 
 struct MenuBarPopoverView: View {
@@ -300,8 +327,8 @@ struct MenuBarPopoverView: View {
             // Header
             HStack {
                 Text("TokenEater")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(.primary)
                 Spacer()
                 if viewModel.isLoading {
                     ProgressView()
@@ -310,11 +337,11 @@ struct MenuBarPopoverView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
             // Metrics
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 metricRow(id: .fiveHour, label: String(localized: "metric.session"), pct: viewModel.fiveHourPct, reset: viewModel.fiveHourReset)
                 metricRow(id: .sevenDay, label: String(localized: "metric.weekly"), pct: viewModel.sevenDayPct, reset: nil)
                 metricRow(id: .sonnet, label: String(localized: "metric.sonnet"), pct: viewModel.sonnetPct, reset: nil)
@@ -324,11 +351,10 @@ struct MenuBarPopoverView: View {
             // Pacing section
             if let pacing = viewModel.pacingResult {
                 Divider()
-                    .overlay(Color.white.opacity(0.08))
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 12)
                     .padding(.horizontal, 16)
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -337,35 +363,35 @@ struct MenuBarPopoverView: View {
                         } label: {
                             Image(systemName: viewModel.pinnedMetrics.contains(.pacing) ? "pin.fill" : "pin")
                                 .font(.system(size: 9))
-                                .foregroundStyle(viewModel.pinnedMetrics.contains(.pacing) ? colorForZone(pacing.zone) : .white.opacity(0.2))
+                                .foregroundStyle(viewModel.pinnedMetrics.contains(.pacing) ? colorForZone(pacing.zone) : Color(nsColor: .tertiaryLabelColor))
                         }
                         .buttonStyle(.plain)
                         .help(viewModel.pinnedMetrics.contains(.pacing) ? Text(String(localized: "menubar.hide")) : Text(String(localized: "menubar.show")))
 
                         Text(String(localized: "pacing.label"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(.secondary)
                         Spacer()
                         let sign = pacing.delta >= 0 ? "+" : ""
                         Text("\(sign)\(Int(pacing.delta))%")
-                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .font(.system(size: 13, weight: .regular))
                             .foregroundStyle(colorForZone(pacing.zone))
                     }
 
                     // Progress bar with ideal marker
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.white.opacity(0.06))
-                                .frame(height: 4)
+                            RoundedRectangle(cornerRadius: 2.5)
+                                .fill(Color(nsColor: .quaternaryLabelColor))
+                                .frame(height: 5)
 
-                            RoundedRectangle(cornerRadius: 2)
+                            RoundedRectangle(cornerRadius: 2.5)
                                 .fill(gradientForZone(pacing.zone))
-                                .frame(width: max(0, geo.size.width * CGFloat(min(pacing.actualUsage, 100)) / 100), height: 4)
+                                .frame(width: max(0, geo.size.width * CGFloat(min(pacing.actualUsage, 100)) / 100), height: 5)
 
                             // Ideal marker
                             Rectangle()
-                                .fill(Color.white.opacity(0.5))
+                                .fill(Color(nsColor: .secondaryLabelColor))
                                 .frame(width: 2, height: 10)
                                 .offset(x: geo.size.width * CGFloat(min(pacing.expectedUsage, 100)) / 100 - 1)
                         }
@@ -384,13 +410,12 @@ struct MenuBarPopoverView: View {
                 let formattedDate = date.formatted(.relative(presentation: .named))
                 Text(String(format: String(localized: "menubar.updated"), formattedDate))
                     .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.3))
-                    .padding(.top, 10)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 12)
             }
 
             Divider()
-                .overlay(Color.white.opacity(0.08))
-                .padding(.top, 10)
+                .padding(.top, 12)
 
             // Actions
             HStack(spacing: 0) {
@@ -414,31 +439,32 @@ struct MenuBarPopoverView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
         }
-        .frame(width: 260)
-        .background(Color(nsColor: NSColor(red: 0.08, green: 0.08, blue: 0.09, alpha: 1)))
+        .frame(width: 264)
+        .background(WindowAccessor())
+        .background(VisualEffectView())
     }
 
     // MARK: - Metric Row
 
     private func actionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                 Text(label)
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.white.opacity(0.5))
+        .foregroundStyle(.secondary)
     }
 
     private func metricRow(id: MetricID, label: String, pct: Int, reset: String?) -> some View {
         let isPinned = viewModel.pinnedMetrics.contains(id)
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.15)) {
@@ -447,39 +473,39 @@ struct MenuBarPopoverView: View {
                 } label: {
                     Image(systemName: isPinned ? "pin.fill" : "pin")
                         .font(.system(size: 9))
-                        .foregroundStyle(isPinned ? colorForPct(pct) : .white.opacity(0.2))
+                        .foregroundStyle(isPinned ? colorForPct(pct) : Color(nsColor: .tertiaryLabelColor))
                         .rotationEffect(.degrees(isPinned ? 0 : 45))
                 }
                 .buttonStyle(.plain)
                 .help(isPinned ? Text(String(localized: "menubar.hide")) : Text(String(localized: "menubar.show")))
 
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(.secondary)
                 Spacer()
                 if let reset = reset, !reset.isEmpty {
                     Text(String(format: String(localized: "metric.reset"), reset))
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.25))
+                        .font(.system(size: 9, weight: .regular))
+                        .foregroundStyle(.tertiary)
                 }
                 Text("\(pct)%")
-                    .font(.system(size: 13, weight: .black, design: .rounded))
+                    .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(colorForPct(pct))
             }
 
             // Progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.white.opacity(0.06))
-                        .frame(height: 4)
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(Color(nsColor: .quaternaryLabelColor))
+                        .frame(height: 5)
 
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: 2.5)
                         .fill(gradientForPct(pct))
-                        .frame(width: max(0, geo.size.width * CGFloat(pct) / 100), height: 4)
+                        .frame(width: max(0, geo.size.width * CGFloat(pct) / 100), height: 5)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 5)
         }
     }
 
