@@ -1,55 +1,63 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$PROJECT_DIR"
-
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}=== Claude Usage Widget — Build ===${NC}"
+echo_run() {
+    echo -e "${BLUE}$*${NC}"
+    "$@"
+}
 
-# 1. Check Xcode
-if ! xcode-select -p | grep -q "Xcode.app"; then
-    echo -e "${RED}Xcode.app requis. Installe-le depuis le Mac App Store.${NC}"
-    echo "Puis lance: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
+INSTALL=false
+while getopts "i" opt; do
+    case $opt in
+        i) INSTALL=true ;;
+        *) echo "Usage: $0 [-i]"; exit 1 ;;
+    esac
+done
+
+# Check Xcode is available (works regardless of app name or install location)
+if ! xcodebuild -version &>/dev/null; then
+    echo -e "${RED}xcodebuild not found. Make sure Xcode.app is installed and selected:${NC}"
+    echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
     exit 1
 fi
 
-# 2. Check/install XcodeGen
-if ! command -v xcodegen &> /dev/null; then
-    echo -e "${BLUE}Installation de XcodeGen via Homebrew...${NC}"
-    brew install xcodegen
+if ! command -v xcodegen &>/dev/null; then
+    echo -e "${RED}xcodegen not found. Install it with: brew install xcodegen${NC}"
+    exit 1
 fi
 
-# 3. Generate Xcode project
-echo -e "${BLUE}Generation du projet Xcode...${NC}"
-xcodegen generate
+echo_run xcodegen generate
 
-# 4. Build
-echo -e "${BLUE}Build en cours...${NC}"
-xcodebuild \
-    -project ClaudeUsageWidget.xcodeproj \
-    -scheme ClaudeUsageApp \
-    -configuration Release \
-    -derivedDataPath build \
-    build 2>&1 | tail -20
+XCODEBUILD_ARGS=(-project ClaudeUsageWidget.xcodeproj -scheme ClaudeUsageApp -configuration Release -derivedDataPath build)
 
-# 5. Find the built app
+echo -e "${BLUE}xcodebuild ${XCODEBUILD_ARGS[*]} build${NC}"
+xcodebuild "${XCODEBUILD_ARGS[@]}" build 2>&1 | grep -E "^(error:|warning:|note:|Build|.*FAILED|.*SUCCEEDED)" || true
+
 APP_PATH=$(find build -name "TokenEater.app" -type d | head -1)
 
-if [ -n "$APP_PATH" ]; then
-    echo ""
-    echo -e "${GREEN}Build OK !${NC}"
-    echo -e "App: ${BLUE}$APP_PATH${NC}"
-    echo ""
-    echo "Pour installer:"
-    echo "  cp -R \"$APP_PATH\" /Applications/"
-    echo "  open \"/Applications/TokenEater.app\""
-else
-    echo -e "${RED}Build echoue. Verifie les erreurs ci-dessus.${NC}"
+if [ -z "$APP_PATH" ]; then
+    echo -e "${RED}Build failed. Run with full output:${NC}"
+    echo "  xcodebuild ${XCODEBUILD_ARGS[*]} build"
     exit 1
+fi
+
+echo ""
+echo -e "${GREEN}Build succeeded!${NC}"
+echo -e "App: ${BLUE}$APP_PATH${NC}"
+
+if $INSTALL; then
+    echo ""
+    pkill -x TokenEater 2>/dev/null || true
+    echo_run cp -R "$APP_PATH" /Applications/
+    echo_run open /Applications/TokenEater.app
+    echo -e "${GREEN}Installed and started — check your menu bar.${NC}"
+else
+    echo ""
+    echo "To install and launch:"
+    echo "  cp -R \"$APP_PATH\" /Applications/ && open /Applications/TokenEater.app"
 fi
