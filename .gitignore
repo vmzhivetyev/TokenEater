@@ -1,5 +1,6 @@
 build/
 *.xcodeproj
+ClaudeUsageWidget/Info.plist
 *.xcworkspace
 DerivedData/
 .DS_Store
