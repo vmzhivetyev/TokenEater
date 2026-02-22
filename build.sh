@@ -31,6 +31,11 @@ if ! command -v xcodegen &>/dev/null; then
     exit 1
 fi
 
+if [ ! -f local.yml ]; then
+    cp local.yml.example local.yml
+    echo -e "${BLUE}Created local.yml from local.yml.example (add your DEVELOPMENT_TEAM)${NC}"
+fi
+
 echo_run xcodegen generate
 
 XCODEBUILD_ARGS=(-project ClaudeUsageWidget.xcodeproj -scheme ClaudeUsageApp -configuration Release -derivedDataPath build)

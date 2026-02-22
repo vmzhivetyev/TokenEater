@@ -7,6 +7,9 @@ options:
   groupSortPosition: top
   defaultLocalization: en
 
+include:
+  - local.yml
+
 settings:
   base:
     SWIFT_VERSION: "5.9"
