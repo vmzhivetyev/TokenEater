@@ -115,26 +115,27 @@ To update later: `brew upgrade tokeneater`
 ```bash
 git clone https://github.com/AThevon/TokenEater.git
 cd TokenEater
-
-# Generate Xcode project
-xcodegen generate
-
-# ⚠️ XcodeGen strips NSExtension from the widget Info.plist.
-# Re-add it manually or run:
-plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' \
-  ClaudeUsageWidget/Info.plist 2>/dev/null || true
-
-# Build
-xcodebuild -project ClaudeUsageWidget.xcodeproj \
-  -scheme ClaudeUsageApp \
-  -configuration Release \
-  -derivedDataPath build build
-
-# Install
-cp -R "build/Build/Products/Release/TokenEater.app" /Applications/
-killall NotificationCenter 2>/dev/null
-open "/Applications/TokenEater.app"
 ```
+
+Then build (and optionally install):
+
+```bash
+# Build only
+./build.sh
+
+# Build and install to /Applications, then launch
+./build.sh -i
+```
+
+`build.sh` copies `local.yml.example` → `local.yml` automatically if it doesn't exist. Edit `local.yml` and set your Apple Developer Team ID:
+
+```yaml
+settings:
+  base:
+    DEVELOPMENT_TEAM: YOUR_TEAM_ID
+```
+
+`local.yml` is gitignored — your Team ID stays local.
 
 ## Architecture
 
