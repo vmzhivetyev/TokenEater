@@ -9,6 +9,7 @@ struct UsageResponse: Codable {
     let sevenDayOauthApps: UsageBucket?
     let sevenDayOpus: UsageBucket?
     let sevenDayCowork: UsageBucket?
+    let extraUsage: ExtraUsage?
 
     enum CodingKeys: String, CodingKey {
         case fiveHour = "five_hour"
@@ -17,16 +18,19 @@ struct UsageResponse: Codable {
         case sevenDayOauthApps = "seven_day_oauth_apps"
         case sevenDayOpus = "seven_day_opus"
         case sevenDayCowork = "seven_day_cowork"
+        case extraUsage = "extra_usage"
     }
 
     init(fiveHour: UsageBucket? = nil, sevenDay: UsageBucket? = nil, sevenDaySonnet: UsageBucket? = nil,
-         sevenDayOauthApps: UsageBucket? = nil, sevenDayOpus: UsageBucket? = nil, sevenDayCowork: UsageBucket? = nil) {
+         sevenDayOauthApps: UsageBucket? = nil, sevenDayOpus: UsageBucket? = nil, sevenDayCowork: UsageBucket? = nil,
+         extraUsage: ExtraUsage? = nil) {
         self.fiveHour = fiveHour
         self.sevenDay = sevenDay
         self.sevenDaySonnet = sevenDaySonnet
         self.sevenDayOauthApps = sevenDayOauthApps
         self.sevenDayOpus = sevenDayOpus
         self.sevenDayCowork = sevenDayCowork
+        self.extraUsage = extraUsage
     }
 
     // Decode tolerantly: unknown keys are ignored, broken buckets become nil
@@ -38,6 +42,21 @@ struct UsageResponse: Codable {
         sevenDayOauthApps = try? container.decode(UsageBucket.self, forKey: .sevenDayOauthApps)
         sevenDayOpus = try? container.decode(UsageBucket.self, forKey: .sevenDayOpus)
         sevenDayCowork = try? container.decode(UsageBucket.self, forKey: .sevenDayCowork)
+        extraUsage = try? container.decode(ExtraUsage.self, forKey: .extraUsage)
+    }
+}
+
+struct ExtraUsage: Codable {
+    let isEnabled: Bool
+    let monthlyLimit: Double
+    let usedCredits: Double
+    let utilization: Double
+
+    enum CodingKeys: String, CodingKey {
+        case isEnabled = "is_enabled"
+        case monthlyLimit = "monthly_limit"
+        case usedCredits = "used_credits"
+        case utilization
     }
 }
 

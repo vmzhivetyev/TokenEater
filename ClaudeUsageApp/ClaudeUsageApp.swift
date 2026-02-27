@@ -15,6 +15,9 @@ struct ClaudeUsageApp: App {
                 menuBarVM?.reloadConfig()
                 syncProxyConfig()
             })
+            .onDisappear {
+                NSApp.setActivationPolicy(.accessory)
+            }
         }
         .windowResizability(.contentSize)
 

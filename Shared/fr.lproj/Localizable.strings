@@ -10,6 +10,7 @@
 "metric.session" = "Session 5h";
 "metric.weekly" = "Hebdo";
 "metric.sonnet" = "Sonnet";
+"metric.extra" = "Usage supplémentaire";
 "metric.reset" = "reset %@";
 
 /* Widget */
@@ -102,6 +103,9 @@
 "notif.orange.body" = "Tu dépasses 60% — lève le pied";
 "notif.red.body" = "Usage critique — limite presque atteinte";
 "notif.green.body" = "Usage réinitialisé — t'es de retour dans le vert";
+"notif.threshold.body" = "Tu atteins %d%% — surveille ta conso";
+"notif.extra.title" = "💳 Usage supplémentaire actif";
+"notif.extra.body" = "Limites de base épuisées — facturation extra en cours : $%.2f / $%.0f";
 
 /* Relative Time */
 "relative.now" = "maintenant";

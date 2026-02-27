@@ -26,17 +26,20 @@ enum PacingCalculator {
         "pacing.hot.1", "pacing.hot.2", "pacing.hot.3",
     ]
 
+    /// Returns how far through a period we are, as a percentage (0–100).
+    /// `resetsAt` is the end of the period; `duration` is its total length.
+    static func elapsedPct(resetsAt: Date, duration: TimeInterval, now: Date = Date()) -> Double {
+        let start = resetsAt.addingTimeInterval(-duration)
+        let elapsed = now.timeIntervalSince(start) / duration
+        return min(max(elapsed, 0), 1) * 100
+    }
+
     static func calculate(from usage: UsageResponse, now: Date = Date()) -> PacingResult? {
-        guard let bucket = usage.sevenDay,
+        guard let bucket = usage.fiveHour,
               let resetsAt = bucket.resetsAtDate
         else { return nil }
 
-        let totalDuration: TimeInterval = 7 * 24 * 3600
-        let startOfPeriod = resetsAt.addingTimeInterval(-totalDuration)
-        let elapsed = now.timeIntervalSince(startOfPeriod) / totalDuration
-        let clampedElapsed = min(max(elapsed, 0), 1)
-
-        let expectedUsage = clampedElapsed * 100
+        let expectedUsage = elapsedPct(resetsAt: resetsAt, duration: 5 * 3600, now: now)
         let delta = bucket.utilization - expectedUsage
 
         let zone: PacingZone

@@ -40,8 +40,11 @@ enum PacingDisplayMode: String {
 final class MenuBarViewModel: ObservableObject {
     @Published var fiveHourPct: Int = 0
     @Published var sevenDayPct: Int = 0
-    @Published var sonnetPct: Int = 0
+    @Published var sonnetPct: Int? = nil
     @Published var fiveHourReset: String = ""
+    @Published var sevenDayReset: String = ""
+    @Published var sevenDayElapsedPct: Double? = nil
+    @Published var extraUsage: ExtraUsage? = nil
     @Published var pacingDelta: Int = 0
     @Published var pacingZone: PacingZone = .onTrack
     @Published var pacingResult: PacingResult?
@@ -114,7 +117,7 @@ final class MenuBarViewModel: ObservableObject {
         switch metric {
         case .fiveHour: return fiveHourPct
         case .sevenDay: return sevenDayPct
-        case .sonnet: return sonnetPct
+        case .sonnet: return sonnetPct ?? 0
         case .pacing: return pacingDelta
         }
     }
@@ -146,7 +149,8 @@ final class MenuBarViewModel: ObservableObject {
             UsageNotificationManager.checkThresholds(
                 fiveHour: fiveHourPct,
                 sevenDay: sevenDayPct,
-                sonnet: sonnetPct
+                sonnet: sonnetPct,
+                extraUsage: extraUsage
             )
         } catch {
             hasError = true
@@ -170,7 +174,7 @@ final class MenuBarViewModel: ObservableObject {
     private func update(from usage: UsageResponse) {
         fiveHourPct = Int(usage.fiveHour?.utilization ?? 0)
         sevenDayPct = Int(usage.sevenDay?.utilization ?? 0)
-        sonnetPct = Int(usage.sevenDaySonnet?.utilization ?? 0)
+        sonnetPct = usage.sevenDaySonnet.map { Int($0.utilization) }
 
         if let reset = usage.fiveHour?.resetsAtDate {
             let diff = reset.timeIntervalSinceNow
@@ -184,6 +188,18 @@ final class MenuBarViewModel: ObservableObject {
         } else {
             fiveHourReset = ""
         }
+
+        if let resetsAt = usage.sevenDay?.resetsAtDate {
+            sevenDayElapsedPct = PacingCalculator.elapsedPct(resetsAt: resetsAt, duration: 7 * 24 * 3600)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEE h:mm a"
+            sevenDayReset = formatter.string(from: resetsAt)
+        } else {
+            sevenDayElapsedPct = nil
+            sevenDayReset = ""
+        }
+
+        extraUsage = usage.extraUsage?.isEnabled == true ? usage.extraUsage : nil
 
         if let pacing = PacingCalculator.calculate(from: usage) {
             pacingDelta = Int(pacing.delta)
@@ -319,6 +335,8 @@ private struct WindowAccessor: NSViewRepresentable {
 // MARK: - Popover View
 
 struct MenuBarPopoverView: View {
+    private static let pacingHotThreshold: Double = 1
+
     @ObservedObject var viewModel: MenuBarViewModel
     @Environment(\.openWindow) private var openWindow
 
@@ -342,68 +360,16 @@ struct MenuBarPopoverView: View {
 
             // Metrics
             VStack(spacing: 10) {
-                metricRow(id: .fiveHour, label: String(localized: "metric.session"), pct: viewModel.fiveHourPct, reset: viewModel.fiveHourReset)
-                metricRow(id: .sevenDay, label: String(localized: "metric.weekly"), pct: viewModel.sevenDayPct, reset: nil)
-                metricRow(id: .sonnet, label: String(localized: "metric.sonnet"), pct: viewModel.sonnetPct, reset: nil)
+                metricRow(id: .fiveHour, label: String(localized: "metric.session"), pct: viewModel.fiveHourPct, reset: viewModel.fiveHourReset, elapsedPct: viewModel.pacingResult?.expectedUsage)
+                metricRow(id: .sevenDay, label: String(localized: "metric.weekly"), pct: viewModel.sevenDayPct, reset: viewModel.sevenDayReset, elapsedPct: viewModel.sevenDayElapsedPct)
+                if let sonnetPct = viewModel.sonnetPct {
+                    metricRow(id: .sonnet, label: String(localized: "metric.sonnet"), pct: sonnetPct, reset: nil)
+                }
+                if let extra = viewModel.extraUsage {
+                    extraUsageRow(extra)
+                }
             }
             .padding(.horizontal, 16)
-
-            // Pacing section
-            if let pacing = viewModel.pacingResult {
-                Divider()
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 6) {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                viewModel.toggleMetric(.pacing)
-                            }
-                        } label: {
-                            Image(systemName: viewModel.pinnedMetrics.contains(.pacing) ? "pin.fill" : "pin")
-                                .font(.system(size: 9))
-                                .foregroundStyle(viewModel.pinnedMetrics.contains(.pacing) ? colorForZone(pacing.zone) : Color(nsColor: .tertiaryLabelColor))
-                        }
-                        .buttonStyle(.plain)
-                        .help(viewModel.pinnedMetrics.contains(.pacing) ? Text(String(localized: "menubar.hide")) : Text(String(localized: "menubar.show")))
-
-                        Text(String(localized: "pacing.label"))
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        let sign = pacing.delta >= 0 ? "+" : ""
-                        Text("\(sign)\(Int(pacing.delta))%")
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(colorForZone(pacing.zone))
-                    }
-
-                    // Progress bar with ideal marker
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2.5)
-                                .fill(Color(nsColor: .quaternaryLabelColor))
-                                .frame(height: 5)
-
-                            RoundedRectangle(cornerRadius: 2.5)
-                                .fill(gradientForZone(pacing.zone))
-                                .frame(width: max(0, geo.size.width * CGFloat(min(pacing.actualUsage, 100)) / 100), height: 5)
-
-                            // Ideal marker
-                            Rectangle()
-                                .fill(Color(nsColor: .secondaryLabelColor))
-                                .frame(width: 2, height: 10)
-                                .offset(x: geo.size.width * CGFloat(min(pacing.expectedUsage, 100)) / 100 - 1)
-                        }
-                    }
-                    .frame(height: 10)
-
-                    Text(pacing.message)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(colorForZone(pacing.zone).opacity(0.8))
-                }
-                .padding(.horizontal, 16)
-            }
 
             // Last update
             if let date = viewModel.lastUpdate {
@@ -423,6 +389,7 @@ struct MenuBarPopoverView: View {
                     Task { await viewModel.refresh() }
                 }
                 actionButton(icon: "gear", label: String(localized: "menubar.settings")) {
+                    NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
                     if let window = NSApp.windows.first(where: {
                         ($0.identifier?.rawValue ?? "").contains("settings")
@@ -462,7 +429,7 @@ struct MenuBarPopoverView: View {
         .foregroundStyle(.secondary)
     }
 
-    private func metricRow(id: MetricID, label: String, pct: Int, reset: String?) -> some View {
+    private func metricRow(id: MetricID, label: String, pct: Int, reset: String?, elapsedPct: Double? = nil) -> some View {
         let isPinned = viewModel.pinnedMetrics.contains(id)
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
@@ -501,30 +468,82 @@ struct MenuBarPopoverView: View {
                         .frame(height: 5)
 
                     RoundedRectangle(cornerRadius: 2.5)
-                        .fill(gradientForPct(pct))
+                        .fill(gradientForPct(pct, elapsedPct: elapsedPct))
                         .frame(width: max(0, geo.size.width * CGFloat(pct) / 100), height: 5)
+
+                    if let elapsedPct {
+                        Rectangle()
+                            .fill(tickColorForDelta(Double(pct) - elapsedPct))
+                            .frame(width: 2, height: 10)
+                            .offset(x: geo.size.width * CGFloat(min(elapsedPct, 100)) / 100 - 1)
+                    }
                 }
             }
-            .frame(height: 5)
+            .frame(height: 10)
         }
     }
 
-    private func colorForZone(_ zone: PacingZone) -> Color {
-        switch zone {
-        case .chill: return Color(red: 0.13, green: 0.77, blue: 0.29)
-        case .onTrack: return Color(red: 0.04, green: 0.52, blue: 1.0)
-        case .hot: return Color(red: 0.94, green: 0.27, blue: 0.27)
+    private func extraUsageRow(_ extra: ExtraUsage) -> some View {
+        let usedDollars = extra.usedCredits / 100
+        let limitDollars = extra.monthlyLimit / 100
+        let pct = Int(extra.utilization)
+        let elapsedPct = monthElapsedPct()
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(String(localized: "metric.extra"))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(String(format: "$%.2f / $%.0f", usedDollars, limitDollars))
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.tertiary)
+                Text("\(pct)%")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(colorForPct(pct))
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(Color(nsColor: .quaternaryLabelColor))
+                        .frame(height: 5)
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(gradientForPct(pct, elapsedPct: elapsedPct))
+                        .frame(width: max(0, geo.size.width * CGFloat(pct) / 100), height: 5)
+                    Rectangle()
+                        .fill(tickColorForDelta(Double(pct) - elapsedPct))
+                        .frame(width: 2, height: 10)
+                        .offset(x: geo.size.width * CGFloat(min(elapsedPct, 100)) / 100 - 1)
+                }
+            }
+            .frame(height: 10)
         }
     }
 
-    private func gradientForZone(_ zone: PacingZone) -> LinearGradient {
-        switch zone {
-        case .chill:
-            return LinearGradient(colors: [Color(red: 0.13, green: 0.77, blue: 0.29), Color(red: 0.29, green: 0.87, blue: 0.50)], startPoint: .leading, endPoint: .trailing)
-        case .onTrack:
-            return LinearGradient(colors: [Color(red: 0.04, green: 0.52, blue: 1.0), Color(red: 0.25, green: 0.61, blue: 1.0)], startPoint: .leading, endPoint: .trailing)
-        case .hot:
-            return LinearGradient(colors: [Color(red: 0.94, green: 0.27, blue: 0.27), Color(red: 0.86, green: 0.15, blue: 0.15)], startPoint: .leading, endPoint: .trailing)
+    private func monthElapsedPct(now: Date = Date()) -> Double {
+        let cal = Calendar.current
+        let start = cal.date(from: cal.dateComponents([.year, .month], from: now))!
+        let range = cal.range(of: .day, in: .month, for: now)!
+        let duration = Double(range.count) * 24 * 3600
+        return min(max(now.timeIntervalSince(start) / duration, 0), 1) * 100
+    }
+
+    private func tickColorForDelta(_ delta: Double) -> Color {
+        if delta > Self.pacingHotThreshold { return Color(red: 0.94, green: 0.27, blue: 0.27) }
+        if delta < -Self.pacingHotThreshold { return Color(red: 0.13, green: 0.77, blue: 0.29) }
+        return Color(red: 0.04, green: 0.52, blue: 1.0)
+    }
+
+    private func barColorForDelta(_ delta: Double) -> (Double, Double, Double) {
+        if delta < -Self.pacingHotThreshold { return (0.13, 0.77, 0.29) }
+        if delta > Self.pacingHotThreshold  { return (0.94, 0.27, 0.27) }
+        // within threshold: interpolate green→blue→red
+        let t = (delta + Self.pacingHotThreshold) / (2 * Self.pacingHotThreshold)
+        if t < 0.5 {
+            let s = t * 2
+            return (0.13 + (0.04 - 0.13) * s, 0.77 + (0.52 - 0.77) * s, 0.29 + (1.0 - 0.29) * s)
+        } else {
+            let s = (t - 0.5) * 2
+            return (0.04 + (0.94 - 0.04) * s, 0.52 + (0.27 - 0.52) * s, 1.0 + (0.27 - 1.0) * s)
         }
     }
 
@@ -534,15 +553,22 @@ struct MenuBarPopoverView: View {
         return Color(red: 0.94, green: 0.27, blue: 0.27)
     }
 
-    private func gradientForPct(_ pct: Int) -> LinearGradient {
-        let colors: [Color]
-        if pct < 60 {
-            colors = [Color(red: 0.13, green: 0.77, blue: 0.29), Color(red: 0.29, green: 0.87, blue: 0.50)]
-        } else if pct < 85 {
-            colors = [Color(red: 0.98, green: 0.45, blue: 0.09), Color(red: 0.98, green: 0.57, blue: 0.24)]
-        } else {
-            colors = [Color(red: 0.94, green: 0.27, blue: 0.27), Color(red: 0.86, green: 0.15, blue: 0.15)]
+    private func gradientForPct(_ pct: Int, elapsedPct: Double? = nil) -> LinearGradient {
+        guard let elapsedPct, pct > 0 else {
+            return LinearGradient(
+                colors: [Color(red: 0.13, green: 0.77, blue: 0.29), Color(red: 0.29, green: 0.87, blue: 0.50)],
+                startPoint: .leading, endPoint: .trailing
+            )
         }
-        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+
+        // Sample barColorForDelta at several positions across the filled bar.
+        let pctD = Double(pct)
+        let positions: [Double] = [0, 0.25, 0.5, 0.75, 1.0]
+        let stops: [Gradient.Stop] = positions.map { fraction in
+            let xPct = fraction * pctD
+            let (r, g, b) = barColorForDelta(xPct - elapsedPct)
+            return .init(color: Color(red: r, green: g, blue: b), location: fraction)
+        }
+        return LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
     }
 }
