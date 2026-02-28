@@ -10,7 +10,7 @@ struct ClaudeUsageApp: App {
     }
 
     var body: some Scene {
-        WindowGroup(id: "settings") {
+        Settings {
             SettingsView(onConfigSaved: { [weak menuBarVM] in
                 menuBarVM?.reloadConfig()
                 syncProxyConfig()

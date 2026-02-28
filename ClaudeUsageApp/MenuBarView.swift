@@ -338,7 +338,7 @@ struct MenuBarPopoverView: View {
     private static let pacingHotThreshold: Double = 1
 
     @ObservedObject var viewModel: MenuBarViewModel
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -391,13 +391,7 @@ struct MenuBarPopoverView: View {
                 actionButton(icon: "gear", label: String(localized: "menubar.settings")) {
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: {
-                        ($0.identifier?.rawValue ?? "").contains("settings")
-                    }) {
-                        window.makeKeyAndOrderFront(nil)
-                    } else {
-                        openWindow(id: "settings")
-                    }
+                    openSettings()
                 }
                 actionButton(icon: "power", label: String(localized: "menubar.quit")) {
                     NSApplication.shared.terminate(nil)
