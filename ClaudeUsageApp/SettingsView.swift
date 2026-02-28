@@ -138,6 +138,21 @@ struct SettingsView: View {
                     .foregroundStyle(result.success ? .green : .red)
                 }
             }
+
+            Section("settings.usagelog") {
+                HStack {
+                    Text(UsageLogger.shared.logURL.path)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Button("settings.usagelog.reveal") {
+                        NSWorkspace.shared.activateFileViewerSelecting([UsageLogger.shared.logURL])
+                    }
+                    .disabled(!FileManager.default.fileExists(atPath: UsageLogger.shared.logURL.path))
+                }
+            }
         }
         .formStyle(.grouped)
     }

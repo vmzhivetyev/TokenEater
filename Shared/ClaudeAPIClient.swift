@@ -47,6 +47,7 @@ final class ClaudeAPIClient {
         case 200:
             let usage = try JSONDecoder().decode(UsageResponse.self, from: data)
             LocalCache.write(CachedUsage(usage: usage, fetchDate: Date()))
+            UsageLogger.shared.append(usage)
             return usage
         case 401, 403:
             KeychainOAuthReader.invalidateCache()

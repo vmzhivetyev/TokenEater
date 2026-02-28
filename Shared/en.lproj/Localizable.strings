@@ -57,6 +57,8 @@
 "settings.proxy.host" = "Host";
 "settings.proxy.port" = "Port";
 "settings.proxy.hint" = "Example: ssh -D 1080 user@bastion then enable the proxy here.";
+"settings.usagelog" = "Usage Log";
+"settings.usagelog.reveal" = "Reveal in Finder";
 
 /* Connect */
 "connect.button" = "Connect";
