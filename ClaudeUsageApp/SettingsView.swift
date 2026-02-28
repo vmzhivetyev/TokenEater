@@ -362,7 +362,7 @@ struct SettingsView: View {
 
     private func loadConfig() {
         loadPinnedMetrics()
-        if KeychainOAuthReader.readClaudeCodeToken() != nil {
+        if KeychainOAuthReader.cachedToken() != nil {
             authMethodLabel = String(localized: "connect.method.oauth")
         }
     }
@@ -410,7 +410,7 @@ struct SettingsView: View {
         isImporting = true
         importMessage = nil
 
-        guard KeychainOAuthReader.readClaudeCodeToken() != nil else {
+        guard KeychainOAuthReader.cachedToken() != nil else {
             isImporting = false
             importMessage = String(localized: "connect.noclaudecode")
             importSuccess = false

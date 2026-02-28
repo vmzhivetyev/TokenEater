@@ -22,13 +22,13 @@ final class ClaudeAPIClient {
     // MARK: - Auth
 
     var isConfigured: Bool {
-        KeychainOAuthReader.readClaudeCodeToken() != nil
+        KeychainOAuthReader.cachedToken() != nil
     }
 
     // MARK: - Fetch Usage
 
     func fetchUsage() async throws -> UsageResponse {
-        guard let oauth = KeychainOAuthReader.readClaudeCodeToken() else {
+        guard let oauth = KeychainOAuthReader.cachedToken() else {
             throw ClaudeAPIError.noToken
         }
 
@@ -49,6 +49,7 @@ final class ClaudeAPIClient {
             LocalCache.write(CachedUsage(usage: usage, fetchDate: Date()))
             return usage
         case 401, 403:
+            KeychainOAuthReader.invalidateCache()
             throw ClaudeAPIError.tokenExpired
         default:
             throw ClaudeAPIError.httpError(httpResponse.statusCode)
@@ -58,7 +59,7 @@ final class ClaudeAPIClient {
     // MARK: - Test Connection
 
     func testConnection() async -> ConnectionTestResult {
-        guard let oauth = KeychainOAuthReader.readClaudeCodeToken() else {
+        guard let oauth = KeychainOAuthReader.cachedToken() else {
             return ConnectionTestResult(success: false, message: String(localized: "error.notoken"))
         }
 
@@ -80,6 +81,7 @@ final class ClaudeAPIClient {
                 let sessionPct = usage.fiveHour?.utilization ?? 0
                 return ConnectionTestResult(success: true, message: String(format: String(localized: "test.success"), Int(sessionPct)))
             } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                KeychainOAuthReader.invalidateCache()
                 return ConnectionTestResult(success: false, message: String(format: String(localized: "test.expired"), httpResponse.statusCode))
             } else {
                 return ConnectionTestResult(success: false, message: String(format: String(localized: "test.http"), httpResponse.statusCode))

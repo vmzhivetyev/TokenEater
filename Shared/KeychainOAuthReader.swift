@@ -59,6 +59,13 @@ enum KeychainOAuthReader {
         return OAuthCredentials(accessToken: token)
     }
 
+    // MARK: - Cache management
+
+    /// Clears the cached token so the next `cachedToken()` call re-reads from Claude Code's keychain.
+    static func invalidateCache() {
+        deleteCachedToken()
+    }
+
     // MARK: - Private helpers
 
     private static func cacheToken(_ token: String, sourceDataHash: Int) {
