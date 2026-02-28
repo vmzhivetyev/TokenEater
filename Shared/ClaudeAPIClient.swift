@@ -3,7 +3,7 @@ import Foundation
 final class ClaudeAPIClient {
     static let shared = ClaudeAPIClient()
 
-    private let oauthURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+    private let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
 
     /// Set by host app (from UserDefaults) or widget (from AppIntent)
     var proxyConfig: ProxyConfig?
@@ -22,17 +22,17 @@ final class ClaudeAPIClient {
     // MARK: - Auth
 
     var isConfigured: Bool {
-        KeychainOAuthReader.readClaudeCodeToken() != nil
+        KeychainOAuthReader.cachedToken() != nil
     }
 
     // MARK: - Fetch Usage
 
     func fetchUsage() async throws -> UsageResponse {
-        guard let oauth = KeychainOAuthReader.readClaudeCodeToken() else {
+        guard let oauth = KeychainOAuthReader.cachedToken() else {
             throw ClaudeAPIError.noToken
         }
 
-        var request = URLRequest(url: oauthURL)
+        var request = URLRequest(url: usageURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(oauth.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
@@ -46,9 +46,10 @@ final class ClaudeAPIClient {
         switch httpResponse.statusCode {
         case 200:
             let usage = try JSONDecoder().decode(UsageResponse.self, from: data)
-            LocalCache.write(CachedUsage(usage: usage, fetchDate: Date()))
+            UsageLogger.shared.append(usage)
             return usage
         case 401, 403:
+            KeychainOAuthReader.invalidateCache()
             throw ClaudeAPIError.tokenExpired
         default:
             throw ClaudeAPIError.httpError(httpResponse.statusCode)
@@ -58,11 +59,11 @@ final class ClaudeAPIClient {
     // MARK: - Test Connection
 
     func testConnection() async -> ConnectionTestResult {
-        guard let oauth = KeychainOAuthReader.readClaudeCodeToken() else {
+        guard let oauth = KeychainOAuthReader.cachedToken() else {
             return ConnectionTestResult(success: false, message: String(localized: "error.notoken"))
         }
 
-        var request = URLRequest(url: oauthURL)
+        var request = URLRequest(url: usageURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(oauth.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
@@ -80,6 +81,7 @@ final class ClaudeAPIClient {
                 let sessionPct = usage.fiveHour?.utilization ?? 0
                 return ConnectionTestResult(success: true, message: String(format: String(localized: "test.success"), Int(sessionPct)))
             } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                KeychainOAuthReader.invalidateCache()
                 return ConnectionTestResult(success: false, message: String(format: String(localized: "test.expired"), httpResponse.statusCode))
             } else {
                 return ConnectionTestResult(success: false, message: String(format: String(localized: "test.http"), httpResponse.statusCode))
@@ -89,11 +91,6 @@ final class ClaudeAPIClient {
         }
     }
 
-    // MARK: - Cache
-
-    func loadCachedUsage() -> CachedUsage? {
-        LocalCache.read()
-    }
 }
 
 // MARK: - Error

@@ -32,6 +32,7 @@ enum MetricID: String, CaseIterable {
 enum PacingDisplayMode: String {
     case dot
     case dotDelta
+    case dotTime
 }
 
 // MARK: - ViewModel
@@ -67,7 +68,6 @@ final class MenuBarViewModel: ObservableObject {
             pinnedMetrics = [.fiveHour, .sevenDay]
         }
         hasConfig = ClaudeAPIClient.shared.isConfigured
-        loadCached()
         startRefreshTimer()
         UsageNotificationManager.requestPermission()
         // Force WidgetKit to discover all widgets including PacingWidget
@@ -126,6 +126,18 @@ final class MenuBarViewModel: ObservableObject {
         PacingDisplayMode(rawValue: UserDefaults.standard.string(forKey: "pacingDisplayMode") ?? "dotDelta") ?? .dotDelta
     }
 
+    var pacingTimeOffsetString: String {
+        let minutes = Int((Double(pacingDelta) / 100.0) * 5 * 60)
+        let sign = minutes >= 0 ? "+" : "-"
+        let abs = Swift.abs(minutes)
+        if abs >= 60 {
+            let h = abs / 60
+            let m = abs % 60
+            return m == 0 ? "\(sign)\(h)h" : "\(sign)\(h)h\(m)m"
+        }
+        return "\(sign)\(abs)m"
+    }
+
     var menuBarImage: NSImage {
         guard hasConfig, !hasError else {
             return renderText("--")
@@ -163,13 +175,6 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     // MARK: - Private
-
-    private func loadCached() {
-        if let cached = ClaudeAPIClient.shared.loadCachedUsage() {
-            update(from: cached.usage)
-            lastUpdate = cached.fetchDate
-        }
-    }
 
     private func update(from usage: UsageResponse) {
         fiveHourPct = Int(usage.fiveHour?.utilization ?? 0)
@@ -220,7 +225,7 @@ final class MenuBarViewModel: ObservableObject {
 
     private func renderPinnedMetrics() -> NSImage {
         let height: CGFloat = 22
-        let ordered: [MetricID] = [.fiveHour, .sevenDay, .sonnet, .pacing].filter { pinnedMetrics.contains($0) }
+        let ordered: [MetricID] = [.pacing, .fiveHour, .sevenDay, .sonnet].filter { pinnedMetrics.contains($0) }
 
         // Build attributed string with placeholder colors to measure width.
         let str = buildMetricsString(ordered: ordered, labelColor: .labelColor)
@@ -257,9 +262,14 @@ final class MenuBarViewModel: ObservableObject {
                     .foregroundColor: nsColorForZone(pacingZone),
                 ]
                 str.append(NSAttributedString(string: "\u{25CF}", attributes: dotAttrs))
-                if pacingDisplayMode == .dotDelta {
+                switch pacingDisplayMode {
+                case .dotDelta:
                     let sign = pacingDelta >= 0 ? "+" : ""
                     str.append(NSAttributedString(string: " \(sign)\(pacingDelta)%", attributes: textAttrs))
+                case .dotTime:
+                    str.append(NSAttributedString(string: " \(pacingTimeOffsetString)", attributes: textAttrs))
+                case .dot:
+                    break
                 }
             } else {
                 let value = pct(for: metric)
@@ -338,7 +348,7 @@ struct MenuBarPopoverView: View {
     private static let pacingHotThreshold: Double = 1
 
     @ObservedObject var viewModel: MenuBarViewModel
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -391,13 +401,7 @@ struct MenuBarPopoverView: View {
                 actionButton(icon: "gear", label: String(localized: "menubar.settings")) {
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: {
-                        ($0.identifier?.rawValue ?? "").contains("settings")
-                    }) {
-                        window.makeKeyAndOrderFront(nil)
-                    } else {
-                        openWindow(id: "settings")
-                    }
+                    openSettings()
                 }
                 actionButton(icon: "power", label: String(localized: "menubar.quit")) {
                     NSApplication.shared.terminate(nil)

@@ -17,6 +17,14 @@ extension Color {
     }
 }
 
+// MARK: - Bundle Version
+
+extension Bundle {
+    var bundleVersion: String {
+        object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+    }
+}
+
 // MARK: - Date Relative Format
 
 extension Date {

@@ -56,11 +56,6 @@ struct UsageWidgetView: View {
                     .tracking(0.3)
                     .foregroundStyle(.white.opacity(0.5))
                 Spacer()
-                if entry.isStale {
-                    Image(systemName: "wifi.slash")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
             }
             .padding(.bottom, 16)
 
@@ -119,15 +114,6 @@ struct UsageWidgetView: View {
                     .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.95))
                 Spacer()
-                if entry.isStale {
-                    HStack(spacing: 3) {
-                        Image(systemName: "wifi.slash")
-                            .font(.system(size: 9))
-                        Text("widget.offline")
-                            .font(.system(size: 9, design: .rounded))
-                    }
-                    .foregroundStyle(.white.opacity(0.4))
-                }
             }
             .padding(.bottom, 8)
 

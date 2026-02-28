@@ -38,7 +38,13 @@ fi
 
 echo_run xcodegen generate
 
-XCODEBUILD_ARGS=(-project ClaudeUsageWidget.xcodeproj -scheme ClaudeUsageApp -configuration Release -derivedDataPath build)
+SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+DIRTY=$(git status --porcelain 2>/dev/null | grep -q . && echo "-dirty" || echo "")
+VERSION="${SHA}${DIRTY}"
+echo -e "${BLUE}Version: ${VERSION}${NC}"
+
+XCODEBUILD_ARGS=(-project ClaudeUsageWidget.xcodeproj -scheme ClaudeUsageApp -configuration Release -derivedDataPath build
+    MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$VERSION")
 
 echo -e "${BLUE}xcodebuild ${XCODEBUILD_ARGS[*]} build${NC}"
 xcodebuild "${XCODEBUILD_ARGS[@]}" build 2>&1 | grep -E "^(error:|warning:|note:|Build|.*FAILED|.*SUCCEEDED)" || true

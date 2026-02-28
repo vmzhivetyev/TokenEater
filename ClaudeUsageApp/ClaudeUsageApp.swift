@@ -3,14 +3,13 @@ import SwiftUI
 @main
 struct ClaudeUsageApp: App {
     @StateObject private var menuBarVM = MenuBarViewModel()
-    @AppStorage("showMenuBar") private var showMenuBar = true
 
     init() {
         syncProxyConfig()
     }
 
     var body: some Scene {
-        WindowGroup(id: "settings") {
+        Settings {
             SettingsView(onConfigSaved: { [weak menuBarVM] in
                 menuBarVM?.reloadConfig()
                 syncProxyConfig()
@@ -21,7 +20,7 @@ struct ClaudeUsageApp: App {
         }
         .windowResizability(.contentSize)
 
-        MenuBarExtra(isInserted: $showMenuBar) {
+        MenuBarExtra {
             MenuBarPopoverView(viewModel: menuBarVM)
         } label: {
             Image(nsImage: menuBarVM.menuBarImage)

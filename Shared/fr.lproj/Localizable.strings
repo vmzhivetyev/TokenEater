@@ -38,6 +38,7 @@
 "settings.guide" = "Guide";
 "settings.testing" = "Test en cours...";
 "settings.menubar.toggle" = "Afficher dans la barre de menu";
+"settings.launchatlogin" = "Lancer au démarrage";
 "settings.menubar.title" = "Barre de menu";
 "settings.tab.connection" = "Connexion";
 "settings.tab.display" = "Affichage";
@@ -46,17 +47,22 @@
 "settings.pacing.display" = "Affichage rythme";
 "settings.pacing.dot" = "Point seul";
 "settings.pacing.dotdelta" = "Point + delta (%)";
+"settings.pacing.dottime" = "Point + décalage temporel";
+"settings.pacing.display.disabled" = "Activez Rythme dans les métriques épinglées pour configurer ceci.";
 "settings.tab.proxy" = "Proxy";
+"settings.tab.about" = "À propos";
 "settings.proxy.toggle" = "Activer le proxy SOCKS5";
 "settings.proxy.footer" = "Utile derrière un firewall corporate via un tunnel SSH.";
 "settings.proxy.config" = "Configuration proxy";
 "settings.proxy.host" = "Hôte";
 "settings.proxy.port" = "Port";
 "settings.proxy.hint" = "Exemple : ssh -D 1080 user@bastion puis activez le proxy ici.";
+"settings.usagelog" = "Journal d'utilisation";
+"settings.usagelog.reveal" = "Afficher dans le Finder";
 
 /* Connect */
 "connect.button" = "Connexion";
-"connect.subtitle" = "Détection auto du token OAuth Claude Code";
+"connect.subtitle" = "Détection auto du token Claude Code";
 "connect.oauth.success" = "Connecté via Claude Code";
 "connect.method.oauth" = "Claude Code (auto)";
 "connect.noclaudecode" = "Claude Code non détecté. Installez-le et connectez-vous d'abord.";
@@ -72,8 +78,8 @@
 "guide.widget.detail" = "Clic droit sur le bureau > **Modifier les widgets** > **TokenEater**";
 
 /* Errors - API */
-"error.notoken" = "Aucun token OAuth trouvé. Installez Claude Code et cliquez sur Connexion.";
-"error.tokenexpired" = "Token OAuth expiré — relancez Claude Code pour le rafraîchir";
+"error.notoken" = "Aucun token Claude Code trouvé. Installez Claude Code et cliquez sur Connexion.";
+"error.tokenexpired" = "Token Claude Code expiré — relancez Claude Code pour le rafraîchir";
 "error.invalidurl" = "URL invalide";
 "error.invalidresponse" = "Réponse invalide du serveur";
 "error.http" = "Erreur HTTP %d";
