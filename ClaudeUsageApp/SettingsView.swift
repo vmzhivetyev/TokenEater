@@ -15,7 +15,7 @@ struct SettingsView: View {
     @State private var isImporting = false
     @State private var importMessage: String?
     @State private var importSuccess = false
-    @State private var authMethodLabel = ""
+    @State private var isConnected = false
 
     @AppStorage("pacingDisplayMode") private var pacingDisplayMode = "dotDelta"
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -76,8 +76,8 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    if !authMethodLabel.isEmpty {
-                        Text(authMethodLabel)
+                    if isConnected {
+                        Text("connect.method.oauth")
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundStyle(.green)
@@ -285,7 +285,6 @@ struct SettingsView: View {
                     }
                     .padding(.bottom, 20)
 
-                    // Method 1: Claude Code (only method now)
                     guideSection(
                         icon: "terminal.fill",
                         color: Color(hex: "#22C55E"),
@@ -387,9 +386,7 @@ struct SettingsView: View {
 
     private func loadConfig() {
         loadPinnedMetrics()
-        if KeychainOAuthReader.cachedToken() != nil {
-            authMethodLabel = String(localized: "connect.method.oauth")
-        }
+        isConnected = KeychainOAuthReader.cachedToken() != nil
     }
 
     private func pinnedToggle(_ label: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
@@ -454,7 +451,7 @@ struct SettingsView: View {
             await MainActor.run {
                 isImporting = false
                 if result.success {
-                    authMethodLabel = String(localized: "connect.method.oauth")
+                    isConnected = true
                     importMessage = String(localized: "connect.oauth.success")
                     importSuccess = true
                     onConfigSaved?()

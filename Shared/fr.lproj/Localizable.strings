@@ -60,7 +60,7 @@
 
 /* Connect */
 "connect.button" = "Connexion";
-"connect.subtitle" = "Détection auto du token OAuth Claude Code";
+"connect.subtitle" = "Détection auto du token Claude Code";
 "connect.oauth.success" = "Connecté via Claude Code";
 "connect.method.oauth" = "Claude Code (auto)";
 "connect.noclaudecode" = "Claude Code non détecté. Installez-le et connectez-vous d'abord.";
@@ -76,8 +76,8 @@
 "guide.widget.detail" = "Clic droit sur le bureau > **Modifier les widgets** > **TokenEater**";
 
 /* Errors - API */
-"error.notoken" = "Aucun token OAuth trouvé. Installez Claude Code et cliquez sur Connexion.";
-"error.tokenexpired" = "Token OAuth expiré — relancez Claude Code pour le rafraîchir";
+"error.notoken" = "Aucun token Claude Code trouvé. Installez Claude Code et cliquez sur Connexion.";
+"error.tokenexpired" = "Token Claude Code expiré — relancez Claude Code pour le rafraîchir";
 "error.invalidurl" = "URL invalide";
 "error.invalidresponse" = "Réponse invalide du serveur";
 "error.http" = "Erreur HTTP %d";
