@@ -250,7 +250,7 @@ struct SettingsView: View {
                 Text("settings.subtitle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("v2.1.1")
+                Text(Bundle.main.bundleVersion)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 2)
