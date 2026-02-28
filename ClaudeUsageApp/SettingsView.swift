@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import ServiceManagement
 
 extension Notification.Name {
     static let displaySettingsDidChange = Notification.Name("displaySettingsDidChange")
@@ -16,8 +17,8 @@ struct SettingsView: View {
     @State private var importSuccess = false
     @State private var authMethodLabel = ""
 
-    @AppStorage("showMenuBar") private var showMenuBar = true
     @AppStorage("pacingDisplayMode") private var pacingDisplayMode = "dotDelta"
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     @State private var pinnedFiveHour = true
     @State private var pinnedSevenDay = true
@@ -34,43 +35,23 @@ struct SettingsView: View {
     private let accent = Color(hex: "#FF9F0A")
 
     var body: some View {
-        VStack(spacing: 0) {
-            // App header
-            HStack(spacing: 12) {
-                Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 40, height: 40)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("TokenEater")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                    Text("settings.subtitle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        TabView {
+            connectionTab
+                .tabItem {
+                    Label("settings.tab.connection", systemImage: "bolt.horizontal.fill")
                 }
-                Spacer()
-                Text("v2.1.1")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
-
-            TabView {
-                connectionTab
-                    .tabItem {
-                        Label("settings.tab.connection", systemImage: "bolt.horizontal.fill")
-                    }
-                displayTab
-                    .tabItem {
-                        Label("settings.tab.display", systemImage: "menubar.rectangle")
-                    }
-                proxyTab
-                    .tabItem {
-                        Label("settings.tab.proxy", systemImage: "network")
-                    }
-            }
+            displayTab
+                .tabItem {
+                    Label("settings.tab.display", systemImage: "menubar.rectangle")
+                }
+            proxyTab
+                .tabItem {
+                    Label("settings.tab.proxy", systemImage: "network")
+                }
+            aboutTab
+                .tabItem {
+                    Label("settings.tab.about", systemImage: "info.circle")
+                }
         }
         .frame(width: 500, height: 400)
         .onAppear { loadConfig() }
@@ -165,28 +146,46 @@ struct SettingsView: View {
 
     private var displayTab: some View {
         Form {
-            Section("settings.menubar.title") {
-                Toggle("settings.menubar.toggle", isOn: $showMenuBar)
+            Section {
+                Toggle("settings.launchatlogin", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { enabled in
+                        do {
+                            if enabled {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                        } catch {
+                            launchAtLogin = SMAppService.mainApp.status == .enabled
+                        }
+                    }
             }
 
             Section {
-                Toggle("metric.session", isOn: $pinnedFiveHour)
-                Toggle("metric.weekly", isOn: $pinnedSevenDay)
-                Toggle("metric.sonnet", isOn: $pinnedSonnet)
-                Toggle("pacing.label", isOn: $pinnedPacing)
+                pinnedToggle("metric.session", isOn: $pinnedFiveHour)
+                pinnedToggle("metric.weekly", isOn: $pinnedSevenDay)
+                pinnedToggle("metric.sonnet", isOn: $pinnedSonnet)
+                pinnedToggle("pacing.label", isOn: $pinnedPacing)
             } header: {
                 Text("settings.metrics.pinned")
             } footer: {
                 Text("settings.metrics.pinned.footer")
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Section("settings.pacing.display") {
+            Section {
                 Picker("Mode", selection: $pacingDisplayMode) {
                     Text("settings.pacing.dot").tag("dot")
                     Text("settings.pacing.dotdelta").tag("dotDelta")
                 }
                 .pickerStyle(.radioGroup)
+            } header: {
+                Text("settings.pacing.display")
+            } footer: {
+                if !pinnedPacing {
+                    Text("settings.pacing.display.disabled")
+                }
             }
+            .disabled(!pinnedPacing)
         }
         .formStyle(.grouped)
         .onAppear { loadPinnedMetrics() }
@@ -234,6 +233,31 @@ struct SettingsView: View {
         .onChange(of: proxyEnabled) { _ in onConfigSaved?() }
         .onChange(of: proxyHost) { _ in onConfigSaved?() }
         .onChange(of: proxyPort) { _ in onConfigSaved?() }
+    }
+
+    // MARK: - About Tab
+
+    private var aboutTab: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            VStack(spacing: 4) {
+                Text("TokenEater")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                Text("settings.subtitle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("v2.1.1")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Guide Sheet
@@ -367,6 +391,14 @@ struct SettingsView: View {
         }
     }
 
+    private func pinnedToggle(_ label: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
+        Toggle(label, isOn: isOn).disabled(isOn.wrappedValue && pinnedCount == 1)
+    }
+
+    private var pinnedCount: Int {
+        [pinnedFiveHour, pinnedSevenDay, pinnedSonnet, pinnedPacing].filter { $0 }.count
+    }
+
     private func loadPinnedMetrics() {
         if let saved = UserDefaults.standard.stringArray(forKey: "pinnedMetrics") {
             let set = Set(saved)
@@ -383,7 +415,6 @@ struct SettingsView: View {
         if pinnedSevenDay { metrics.append(MetricID.sevenDay.rawValue) }
         if pinnedSonnet { metrics.append(MetricID.sonnet.rawValue) }
         if pinnedPacing { metrics.append(MetricID.pacing.rawValue) }
-        if metrics.isEmpty { metrics.append(MetricID.fiveHour.rawValue); pinnedFiveHour = true }
         UserDefaults.standard.set(metrics, forKey: "pinnedMetrics")
         NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)
     }

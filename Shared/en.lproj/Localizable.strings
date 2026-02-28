@@ -38,6 +38,7 @@
 "settings.guide" = "Guide";
 "settings.testing" = "Testing...";
 "settings.menubar.toggle" = "Show in menu bar";
+"settings.launchatlogin" = "Launch at login";
 "settings.menubar.title" = "Menu bar";
 "settings.tab.connection" = "Connection";
 "settings.tab.display" = "Display";
@@ -46,7 +47,9 @@
 "settings.pacing.display" = "Pacing display";
 "settings.pacing.dot" = "Dot only";
 "settings.pacing.dotdelta" = "Dot + delta (%)";
+"settings.pacing.display.disabled" = "Enable Pacing in pinned metrics to configure this.";
 "settings.tab.proxy" = "Proxy";
+"settings.tab.about" = "About";
 "settings.proxy.toggle" = "Enable SOCKS5 proxy";
 "settings.proxy.footer" = "Useful behind a corporate firewall via an SSH tunnel.";
 "settings.proxy.config" = "Proxy configuration";

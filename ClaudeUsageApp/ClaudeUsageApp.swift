@@ -3,7 +3,6 @@ import SwiftUI
 @main
 struct ClaudeUsageApp: App {
     @StateObject private var menuBarVM = MenuBarViewModel()
-    @AppStorage("showMenuBar") private var showMenuBar = true
 
     init() {
         syncProxyConfig()
@@ -21,7 +20,7 @@ struct ClaudeUsageApp: App {
         }
         .windowResizability(.contentSize)
 
-        MenuBarExtra(isInserted: $showMenuBar) {
+        MenuBarExtra {
             MenuBarPopoverView(viewModel: menuBarVM)
         } label: {
             Image(nsImage: menuBarVM.menuBarImage)
