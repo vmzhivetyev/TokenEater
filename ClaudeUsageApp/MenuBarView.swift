@@ -32,6 +32,7 @@ enum MetricID: String, CaseIterable {
 enum PacingDisplayMode: String {
     case dot
     case dotDelta
+    case dotTime
 }
 
 // MARK: - ViewModel
@@ -124,6 +125,18 @@ final class MenuBarViewModel: ObservableObject {
 
     var pacingDisplayMode: PacingDisplayMode {
         PacingDisplayMode(rawValue: UserDefaults.standard.string(forKey: "pacingDisplayMode") ?? "dotDelta") ?? .dotDelta
+    }
+
+    var pacingTimeOffsetString: String {
+        let minutes = Int((Double(pacingDelta) / 100.0) * 5 * 60)
+        let sign = minutes >= 0 ? "+" : "-"
+        let abs = Swift.abs(minutes)
+        if abs >= 60 {
+            let h = abs / 60
+            let m = abs % 60
+            return m == 0 ? "\(sign)\(h)h" : "\(sign)\(h)h\(m)m"
+        }
+        return "\(sign)\(abs)m"
     }
 
     var menuBarImage: NSImage {
@@ -257,9 +270,14 @@ final class MenuBarViewModel: ObservableObject {
                     .foregroundColor: nsColorForZone(pacingZone),
                 ]
                 str.append(NSAttributedString(string: "\u{25CF}", attributes: dotAttrs))
-                if pacingDisplayMode == .dotDelta {
+                switch pacingDisplayMode {
+                case .dotDelta:
                     let sign = pacingDelta >= 0 ? "+" : ""
                     str.append(NSAttributedString(string: " \(sign)\(pacingDelta)%", attributes: textAttrs))
+                case .dotTime:
+                    str.append(NSAttributedString(string: " \(pacingTimeOffsetString)", attributes: textAttrs))
+                case .dot:
+                    break
                 }
             } else {
                 let value = pct(for: metric)

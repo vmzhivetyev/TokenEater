@@ -176,6 +176,7 @@ struct SettingsView: View {
                 Picker("Mode", selection: $pacingDisplayMode) {
                     Text("settings.pacing.dot").tag("dot")
                     Text("settings.pacing.dotdelta").tag("dotDelta")
+                    Text("settings.pacing.dottime").tag("dotTime")
                 }
                 .pickerStyle(.radioGroup)
             } header: {

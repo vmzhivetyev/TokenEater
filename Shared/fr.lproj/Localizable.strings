@@ -47,6 +47,7 @@
 "settings.pacing.display" = "Affichage rythme";
 "settings.pacing.dot" = "Point seul";
 "settings.pacing.dotdelta" = "Point + delta (%)";
+"settings.pacing.dottime" = "Point + décalage temporel";
 "settings.pacing.display.disabled" = "Activez Rythme dans les métriques épinglées pour configurer ceci.";
 "settings.tab.proxy" = "Proxy";
 "settings.tab.about" = "À propos";

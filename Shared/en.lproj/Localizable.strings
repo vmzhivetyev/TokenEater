@@ -47,6 +47,7 @@
 "settings.pacing.display" = "Pacing display";
 "settings.pacing.dot" = "Dot only";
 "settings.pacing.dotdelta" = "Dot + delta (%)";
+"settings.pacing.dottime" = "Dot + time offset";
 "settings.pacing.display.disabled" = "Enable Pacing in pinned metrics to configure this.";
 "settings.tab.proxy" = "Proxy";
 "settings.tab.about" = "About";
