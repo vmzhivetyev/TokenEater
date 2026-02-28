@@ -3,7 +3,7 @@ import Foundation
 final class ClaudeAPIClient {
     static let shared = ClaudeAPIClient()
 
-    private let oauthURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+    private let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
 
     /// Set by host app (from UserDefaults) or widget (from AppIntent)
     var proxyConfig: ProxyConfig?
@@ -32,7 +32,7 @@ final class ClaudeAPIClient {
             throw ClaudeAPIError.noToken
         }
 
-        var request = URLRequest(url: oauthURL)
+        var request = URLRequest(url: usageURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(oauth.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
@@ -63,7 +63,7 @@ final class ClaudeAPIClient {
             return ConnectionTestResult(success: false, message: String(localized: "error.notoken"))
         }
 
-        var request = URLRequest(url: oauthURL)
+        var request = URLRequest(url: usageURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(oauth.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")

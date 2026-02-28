@@ -233,7 +233,7 @@ final class MenuBarViewModel: ObservableObject {
 
     private func renderPinnedMetrics() -> NSImage {
         let height: CGFloat = 22
-        let ordered: [MetricID] = [.fiveHour, .sevenDay, .sonnet, .pacing].filter { pinnedMetrics.contains($0) }
+        let ordered: [MetricID] = [.pacing, .fiveHour, .sevenDay, .sonnet].filter { pinnedMetrics.contains($0) }
 
         // Build attributed string with placeholder colors to measure width.
         let str = buildMetricsString(ordered: ordered, labelColor: .labelColor)
