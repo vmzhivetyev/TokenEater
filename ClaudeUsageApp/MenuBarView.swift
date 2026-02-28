@@ -68,7 +68,6 @@ final class MenuBarViewModel: ObservableObject {
             pinnedMetrics = [.fiveHour, .sevenDay]
         }
         hasConfig = ClaudeAPIClient.shared.isConfigured
-        loadCached()
         startRefreshTimer()
         UsageNotificationManager.requestPermission()
         // Force WidgetKit to discover all widgets including PacingWidget
@@ -176,13 +175,6 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     // MARK: - Private
-
-    private func loadCached() {
-        if let cached = ClaudeAPIClient.shared.loadCachedUsage() {
-            update(from: cached.usage)
-            lastUpdate = cached.fetchDate
-        }
-    }
 
     private func update(from usage: UsageResponse) {
         fiveHourPct = Int(usage.fiveHour?.utilization ?? 0)

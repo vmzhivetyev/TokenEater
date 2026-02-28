@@ -40,14 +40,6 @@ struct Provider: AppIntentTimelineProvider {
             let usage = try await apiClient.fetchUsage()
             return UsageEntry(date: Date(), usage: usage)
         } catch {
-            if let cached = apiClient.loadCachedUsage() {
-                return UsageEntry(
-                    date: Date(),
-                    usage: cached.usage,
-                    error: nil,
-                    isStale: true
-                )
-            }
             return UsageEntry(date: Date(), usage: nil, error: error.localizedDescription)
         }
     }

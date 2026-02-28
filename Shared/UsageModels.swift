@@ -82,13 +82,6 @@ struct UsageBucket: Codable {
     }
 }
 
-// MARK: - Cached Usage (for offline support)
-
-struct CachedUsage: Codable {
-    let usage: UsageResponse
-    let fetchDate: Date
-}
-
 // MARK: - Proxy Config (injectable — app uses UserDefaults, widget uses AppIntent)
 
 struct ProxyConfig {
@@ -103,23 +96,3 @@ struct ProxyConfig {
     }
 }
 
-// MARK: - Local Cache (each target writes to its own sandbox Application Support)
-
-enum LocalCache {
-    private static let cacheFileName = "claude-usage-cache.json"
-
-    private static var cacheURL: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
-        return appSupport.appendingPathComponent(cacheFileName)
-    }
-
-    static func write(_ cache: CachedUsage) {
-        try? JSONEncoder().encode(cache).write(to: cacheURL)
-    }
-
-    static func read() -> CachedUsage? {
-        guard let data = try? Data(contentsOf: cacheURL) else { return nil }
-        return try? JSONDecoder().decode(CachedUsage.self, from: data)
-    }
-}

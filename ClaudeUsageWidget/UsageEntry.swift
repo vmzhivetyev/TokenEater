@@ -5,13 +5,11 @@ struct UsageEntry: TimelineEntry {
     let date: Date
     let usage: UsageResponse?
     let error: String?
-    let isStale: Bool
 
-    init(date: Date, usage: UsageResponse?, error: String? = nil, isStale: Bool = false) {
+    init(date: Date, usage: UsageResponse?, error: String? = nil) {
         self.date = date
         self.usage = usage
         self.error = error
-        self.isStale = isStale
     }
 
     private static func iso8601String(from date: Date) -> String {

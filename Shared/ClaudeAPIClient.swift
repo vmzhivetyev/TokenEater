@@ -46,7 +46,6 @@ final class ClaudeAPIClient {
         switch httpResponse.statusCode {
         case 200:
             let usage = try JSONDecoder().decode(UsageResponse.self, from: data)
-            LocalCache.write(CachedUsage(usage: usage, fetchDate: Date()))
             UsageLogger.shared.append(usage)
             return usage
         case 401, 403:
@@ -92,11 +91,6 @@ final class ClaudeAPIClient {
         }
     }
 
-    // MARK: - Cache
-
-    func loadCachedUsage() -> CachedUsage? {
-        LocalCache.read()
-    }
 }
 
 // MARK: - Error
