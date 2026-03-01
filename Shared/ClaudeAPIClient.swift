@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.TokenEater", category: "APIClient")
 
 final class ClaudeAPIClient {
     static let shared = ClaudeAPIClient()
@@ -29,6 +32,7 @@ final class ClaudeAPIClient {
 
     func fetchUsage() async throws -> UsageResponse {
         guard let oauth = KeychainOAuthReader.cachedToken() else {
+            logger.error("fetchUsage: no token available")
             throw ClaudeAPIError.noToken
         }
 
@@ -37,21 +41,28 @@ final class ClaudeAPIClient {
         request.setValue("Bearer \(oauth.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
 
+        logger.debug("fetchUsage: sending request")
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
+            logger.error("fetchUsage: invalid response (not HTTP)")
             throw ClaudeAPIError.invalidResponse
         }
+
+        logger.debug("fetchUsage: received status \(httpResponse.statusCode)")
 
         switch httpResponse.statusCode {
         case 200:
             let usage = try JSONDecoder().decode(UsageResponse.self, from: data)
             UsageLogger.shared.append(usage)
+            logger.info("fetchUsage: success")
             return usage
         case 401, 403:
+            logger.warning("fetchUsage: token expired (status \(httpResponse.statusCode))")
             KeychainOAuthReader.invalidateCache()
             throw ClaudeAPIError.tokenExpired
         default:
+            logger.error("fetchUsage: unexpected status \(httpResponse.statusCode)")
             throw ClaudeAPIError.httpError(httpResponse.statusCode)
         }
     }
@@ -60,6 +71,7 @@ final class ClaudeAPIClient {
 
     func testConnection() async -> ConnectionTestResult {
         guard let oauth = KeychainOAuthReader.cachedToken() else {
+            logger.error("testConnection: no token available")
             return ConnectionTestResult(success: false, message: String(localized: "error.notoken"))
         }
 
@@ -68,25 +80,35 @@ final class ClaudeAPIClient {
         request.setValue("Bearer \(oauth.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
 
+        logger.debug("testConnection: sending request")
+
         do {
             let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
+                logger.error("testConnection: invalid response (not HTTP)")
                 return ConnectionTestResult(success: false, message: String(localized: "error.invalidresponse.short"))
             }
 
+            logger.debug("testConnection: received status \(httpResponse.statusCode)")
+
             if httpResponse.statusCode == 200 {
                 guard let usage = try? JSONDecoder().decode(UsageResponse.self, from: data) else {
+                    logger.error("testConnection: failed to decode UsageResponse (unsupported plan?)")
                     return ConnectionTestResult(success: false, message: String(localized: "error.unsupportedplan"))
                 }
                 let sessionPct = usage.fiveHour?.utilization ?? 0
+                logger.info("testConnection: success, utilization=\(sessionPct, format: .fixed(precision: 1))%")
                 return ConnectionTestResult(success: true, message: String(format: String(localized: "test.success"), Int(sessionPct)))
             } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                logger.warning("testConnection: token expired (status \(httpResponse.statusCode))")
                 KeychainOAuthReader.invalidateCache()
                 return ConnectionTestResult(success: false, message: String(format: String(localized: "test.expired"), httpResponse.statusCode))
             } else {
+                logger.error("testConnection: unexpected status \(httpResponse.statusCode)")
                 return ConnectionTestResult(success: false, message: String(format: String(localized: "test.http"), httpResponse.statusCode))
             }
         } catch {
+            logger.error("testConnection: network error — \(error.localizedDescription)")
             return ConnectionTestResult(success: false, message: String(format: String(localized: "error.network"), error.localizedDescription))
         }
     }
